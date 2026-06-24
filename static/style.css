@@ -1,0 +1,4 @@
+.form-check-input:checked + .form-check-label {
+    text-decoration: line-through;
+    color: gray;
+}
