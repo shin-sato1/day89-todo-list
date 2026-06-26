@@ -2,16 +2,87 @@
 
 {%block content%}
 <div class="container">
-    <form method="POST">
+    <form method="POST" action="{{ url_for('add_task') }}" class="mb-3">
         {{ form.hidden_tag() }}
-        {{ form.task.label(class="form-label") }} 
+        {{ form.task.label(class="form-label") }}
 
         <div class="d-flex gap-3">
-            {{ form.task(class="form-control", style='width:100%') }}
-            {{form.task_date }}
-            {{form.submit(class='btn btn-primary')}}
+            {{ form.task(class="form-control", style='width:65%') }}
+            {{form.task_date (class='form-control text-center', style='width:25%; font-size:0.875rem;')}}
+            {{form.submit(class='btn btn-primary', style='width:10%')}}
         </div>
     </form>
+
+
+    <!-- <div class="d-flex flex-column flex-md-row p-0 gap-0 py-md-0 align-items-center justify-content-center">
+        <div class="list-group w-100"> -->
+    <div class="list-group">
+        {% for item in task_info_forms %}
+        <label class="list-group-item d-flex justify-content-between align-items-center">
+
+            <!-- 左側：チェックボックスとタスク -->
+            <div class="d-flex align-items-center gap-3">
+
+                <form action="{{ url_for('complete_task', id = item.id) }}" method="POST">
+                    <input class="form-check-input flex-shrink-0" 
+                    type="checkbox" 
+                    name="checkbox"
+                    onchange="this.form.submit()"
+                    {% if item.complete %} checked {% endif %} 
+                    style="font-size: 1.375em;">
+                </form>
+
+                <strong>{{ item.task}}</strong>
+            </div>
+
+
+            <!-- 右側：時間 -->
+            <strong class="text-body-secondary">
+                <svg class="bi me-1" width="1em" height="1em" role="img" aria-label="Schedule">
+                    <use xlink:href="#calendar-event"></use>
+                </svg>
+                {{item.date.year}}/{{item.date.month}}/{{item.date.day}}
+            </strong>
+
+        </label>
+        {% endfor %}
+    </div>
+
+    <!-- </div>
+    </div> -->
+
+
+    {% endblock %}
+
+    <!-- <div class="container">
+        {% set year = namespace(current_year=None) %}
+        {% set month = namespace(current_date=None) %}
+
+        {% for item in task_info_forms %}
+
+            {% if year.current_year != item.date.year %}
+                <h2 class="pt-3">{{ item.date.year }}</h2>
+                {% set year.current_year = item.date.year %}
+            {% endif %}
+
+            {% if month.current_date != item.date.month %}
+                <h3 >&emsp;{{ item.date.month }}月</h3>
+                {% set month.current_date = item.date.month %}
+            {% endif %}
+
+            <div class="form-check ms-5">
+                <input class="form-check-input" type="checkbox" value="" id="checkDefault">
+                <label class="form-check-label" for="checkDefault">
+                   <h5>{{item.date.day}}日&nbsp;{{ item.task }}</h>
+                </label>
+            </div>
+            <--<h4>&emsp;&emsp;{{item.date.day}}日&nbsp;{{ item.task }}</h4> -->
+
+    <!-- {% endfor %} -->
+
+    <!-- </div> -->
+
+
 
     <!-- <div class="form-check">
         <input class="form-check-input" type="checkbox" value="" id="checkDefault">
@@ -19,7 +90,3 @@
             Default checkbox
         </label>
     </div> -->
-</div>
-
-
-{%endblock%}
