@@ -1,10 +1,16 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField,DateField,SubmitField
-from wtforms.validators import DataRequired
+from wtforms import StringField,DateField,SubmitField,SelectField
+from wtforms.validators import DataRequired,InputRequired
 
-class TaskForm(FlaskForm):
-    task = StringField('New Task', validators=[DataRequired()])
-    task_date = DateField(format='%Y-%m-%d',validators=[DataRequired()])
+class AddTaskForm(FlaskForm):
+    task = StringField('Add Task', validators=[DataRequired()])
+    task_date = DateField('Execute date',format='%Y-%m-%d',validators=[DataRequired()])
+    submit = SubmitField('Add')
+
+class EditTaskForm(FlaskForm):
+    task = StringField('Add Task', validators=[DataRequired()])
+    task_date = DateField('Execute date',format='%Y-%m-%d',validators=[DataRequired()])
+    complete = SelectField('Status',validators=[InputRequired()],choices=[('True','Complete'),('False','Incomplete')])
     submit = SubmitField('Add')
 
 class RegisterForm(FlaskForm):

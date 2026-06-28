@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Integer, String, DateTime, ForeignKey,Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from forms import TaskForm
+from forms import AddTaskForm,EditTaskForm,RegisterForm
 from datetime import datetime
 
 app = Flask(__name__)
@@ -39,10 +39,19 @@ with app.app_context():
     db.create_all()
 
 
+@app.context_processor
+def inject_date():
+    return {
+        'current_year': datetime.now().year,
+        'current_month': datetime.now().month,
+        'current_day': datetime.now().day,
+        'current_time': datetime.now().second,
+    }
+
 @app.route('/')
 def home():
     tasks = []
-    form = TaskForm()
+    form = AddTaskForm()
     task_info = db.session.execute(db.select(Task).order_by(Task.date.desc())).scalars().all()
 
     for item in task_info:
@@ -52,7 +61,7 @@ def home():
 
 @app.route('/add',methods=['POST','GET'])
 def add_task():
-    form = TaskForm()
+    form = AddTaskForm()
     if form.validate_on_submit():
         new_task = Task(
             task = form.task.data,
@@ -60,17 +69,37 @@ def add_task():
         )
         db.session.add(new_task)
         db.session.commit()
-        return redirect(url_for('home'))
+
+    return redirect(url_for('home'))
 
 
-@app.route('/complete/<int:id>',methods=['POST'])
+@app.route('/complete/<int:id>',methods=['POST','GET'])
 def complete_task(id):
     task = db.get_or_404(Task,id)
     task.complete = not task.complete
 
     db.session.commit()
     return redirect(url_for('home'))
+
+
+@app.route('/delete/<int:id>',methods=['POST','GET'])
+def delete_task(id):
+    todo_info = db.get_or_404(Task,id)
+
+    delete_form = EditTaskForm(
+        task = todo_info.task,
+        task_date = todo_info.date,
+        complete = todo_info.complete,
+    )
+    delete_form.submit.label.text = "Delete"
+
+    if delete_form.validate_on_submit():
+        db.session.delete(todo_info)
+        db.session.commit()
+        return redirect(url_for('home'))
     
+    return render_template('edit.html',form=delete_form,is_delete=True)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="px-4 pt-2 my-4">
+    <div class="text-center">
+        {% if is_delete %}
+        <h2>Really Delete ?</h2>
+        {% else %}
+        <h2>Edit Todo task</h2>
+        {% endif %}
+    </div>
+
+    <div class="col-md-7 col-lg-8 mx-auto mt-3">
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+            {% for item in [form.task,form.task_date,form.complete] %}
+            {{ item.label(class='form-label pt-4') }}
+            {{ item(class='form-control') }}
+            {% endfor %}
+
+            <div class="mt-4">
+                {% if is_delete %}
+                {{ form.submit(class='btn btn-danger') }}
+                {% else %}
+                {{ form.submit(class='btn btn-primary') }}
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}
