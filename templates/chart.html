@@ -2,8 +2,24 @@
 
 {% block charts %}
     <div class="container pt-3">
+            <form action="{{ url_for('charts') }}" method="GET" class="d-flex justify-content-end align-items-center gap-2 mb-3">
+            
+                <div class="col-auto">
+                    <input type="number" name="year" value="{{ current_year }}" class="form-control" placeholder="Year">
+                </div>
+            
+                <div class="col-auto">
+                    <input type="number" name="month" value="{{ current_month }}" min="1" max="12" class="form-control" placeholder="Month">
+                </div>
+            
+                <div class="col-auto">
+                    <button class="btn btn-primary" type="submit">
+                        表示
+                    </button>
+                </div>
+            
+            </form>
         <canvas id="myChart"></canvas>
-        <canvas id="myChart_2"></canvas>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,16 +30,25 @@
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+                labels: {{ labels | tojson }},
                 datasets: [{
-                    label: '# of Votes',
-                    data: [25, 19, 3, 5, 2, 3],
-                    borderWidth: 1
+                    label: {{chart_label | tojson}},
+                    data: {{ data | tojson }},
+                    borderWidth: 2
                 }]
             },
             options: {
                 scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    },
                     y: {
+                        ticks: {
+                            stepSize: 1,
+                            precision: 0,
+                        },
                         beginAtZero: true
                     }
                 }
@@ -32,26 +57,5 @@
     </script>
 
     
-    Ï<script>
-        const ctx2 = document.getElementById('myChart_2');
-
-        new Chart(ctx2, {
-            type: 'line',
-            data: {
-                labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
-                datasets: [{
-                    label: '# of Votes',
-                    data: [25, 19, 3, 5, 2, 3],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    </script>
+   
 {% endblock %}

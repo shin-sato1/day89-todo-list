@@ -1,8 +1,8 @@
-from flask import Flask,render_template,redirect,url_for
+from flask import Flask,render_template,redirect,url_for,request
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import Integer, String, DateTime, ForeignKey,Boolean
+from sqlalchemy import Integer, String, DateTime, ForeignKey,Boolean,func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from forms import AddTaskForm,EditTaskForm,RegisterForm
 from datetime import datetime,date
@@ -52,6 +52,7 @@ def inject_date():
         'current_time': now.second,
     }
 
+
 @app.route('/')
 def home():
     tasks = []
@@ -61,6 +62,7 @@ def home():
     for item in task_info:
         tasks.append(item)
     return render_template('index.html',form=form,task_info_forms=tasks)
+
 
 
 @app.route('/add',methods=['POST','GET'])
@@ -75,6 +77,7 @@ def add_task():
         db.session.commit()
 
     return redirect(url_for('home'))
+
 
 
 @app.route('/complete/<int:id>',methods=['POST','GET'])
@@ -92,6 +95,7 @@ def complete_task(id):
 
     db.session.commit()
     return redirect(url_for('home'))
+
 
 
 @app.route('/delete/<int:id>',methods=['POST','GET'])
@@ -112,6 +116,8 @@ def delete_task(id):
     
     return render_template('edit.html',form=delete_form,is_delete=True)
 
+
+
 @app.route('/edit/<int:id>',methods=['POST','GET'])
 def edit_task(id):
     todo_info = db.get_or_404(Task,id)
@@ -128,7 +134,7 @@ def edit_task(id):
 
     if edit_form.validate_on_submit():
         todo_info.task = edit_form.task.data
-        todo_info.date = edit_form.task_date.data
+        todo_info.add_date = edit_form.task_date.data
         todo_info.complete = edit_form.complete.data == 'True'
         db.session.commit()
         return redirect(url_for('home'))
@@ -140,22 +146,64 @@ def edit_task(id):
     return render_template('edit.html',form=edit_form,is_edit=True)
 
 
-#その月の日付が入ったリストを作成する。typeはdatetime
-def make_day_list(year,month):
-    day = calendar.monthrange(year,month)
-    return [date(year,month,day)for day in range(1,day + 1)]
 
 @app.route('/chart',methods=['POST','GET'])
 def charts():
     #やること
     #同じ日付を確認する。何個あるか確認する
 
+    year = request.args.get('year')
+    month = request.args.get('month')
+
+    if year is None or month is None:
+        year = now.year
+        month = now.month
+    else:
+        year = int(year)
+        month = int(month)
+
+
+    chart_label = f'{year}年{month}月'
+
+    #下のコードわからない
+
+    #その月の日付が入ったリストを作成する。typeはdatetime
+    last_day = calendar.monthrange(year,month)[1]
+    date_list = [
+        date(year,month,day)
+        for day in range(1,last_day + 1)
+    ]
+
+    result = (
+        db.session.execute(
+            db.select(
+                func.date(Task.complete_date),
+                func.count(Task.id)
+            )
+            .where(func.strftime("%Y",Task.complete_date) == str(year))
+            .where(func.strftime("%m",Task.complete_date) == f"{month:02d}")
+            .group_by(func.date(Task.complete_date))
+        )
+        .all()
+    )
     
-    labels = [d.strftime("%m/%d") for d in make_day_list(2026,7)]
-    return render_template('chart.html')
+    #[('2026-07-01', 1)]の形を辞書に変換する
+    count_dict = {
+        day: count
+        for day,count in result
+    }
+    
+    labels = []
+    data = []
+    for d in date_list:
+        labels.append(f"{d.day}")
+        data.append(count_dict.get(str(d),0))
+
+    return render_template('chart.html',labels=labels,data=data,chart_label=chart_label)
 
 
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host="0.0.0.0",port=5001,debug=True)
