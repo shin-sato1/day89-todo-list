@@ -18,6 +18,7 @@
         <div class="list-group w-100"> -->
     <div class="list-group">
         {% for item in task_info_forms %}
+        {% if not item.complete %}
         <label class="list-group-item d-flex justify-content-between align-items-center">
 
             <!-- 左側：チェックボックスとタスク -->
@@ -30,22 +31,12 @@
                 </form>
 
                 <div class="d-flex flex-column">
-                    {% if item.complete %}
-                    <strong><s style="color: orange;">Task: {{ item.task}}</s></strong>
-                    {% else %}
                     <strong>Task: {{ item.task}}</strong>
-                    {% endif %}
 
                     <small class="text-body-secondary">
                         <strong>
-                            Execute: {{item.date.year}}/{{item.date.month}}/{{item.date.day}}
+                            Execute: {{item.add_date.year}}/{{item.add_date.month}}/{{item.add_date.day}}
                         </strong>
-
-                        {% if item.complete %}
-                        <strong class="ms-3">
-                            Done: {{current_year}}/{{current_month}}/{{current_day}}
-                        </strong>
-                        {% endif %}
                     </small>
                 </div>
             </div>
@@ -53,7 +44,7 @@
 
             <!-- 右側：時間 -->
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-success">edit</button>
+                <a class="btn btn-success" href="{{ url_for('edit_task' ,id = item.id )}}">edit</a>
                 <a class="btn btn-danger" href="{{ url_for('delete_task',id = item.id) }}">delete</a>
             </div>
             <!-- <strong class="text-body-secondary">
@@ -64,48 +55,54 @@
             </strong> -->
 
         </label>
+        {% endif %}
         {% endfor %}
     </div>
 
-    <!-- </div>
-    </div> -->
 
-
-    {% endblock %}
-
-    <!-- <div class="container">
-        {% set year = namespace(current_year=None) %}
-        {% set month = namespace(current_date=None) %}
-
+    <h4 class="pt-5 mt-5">Finished Task Lists</h4>
+    <!-- <div class="d-flex flex-column flex-md-row p-0 gap-0 py-md-0 align-items-center justify-content-center">
+                <div class="list-group w-100"> -->
+    <div class="list-group">
         {% for item in task_info_forms %}
+        {% if item.complete %}
+        <label class="list-group-item d-flex justify-content-between align-items-center">
 
-            {% if year.current_year != item.date.year %}
-                <h2 class="pt-3">{{ item.date.year }}</h2>
-                {% set year.current_year = item.date.year %}
-            {% endif %}
+            <!-- 左側：チェックボックスとタスク -->
+            <div class="d-flex align-items-center gap-3">
 
-            {% if month.current_date != item.date.month %}
-                <h3 >&emsp;{{ item.date.month }}月</h3>
-                {% set month.current_date = item.date.month %}
-            {% endif %}
+                <form action="{{ url_for('complete_task', id = item.id) }}" method="POST">
+                    <input class="form-check-input flex-shrink-0" type="checkbox" name="checkbox"
+                        onchange="this.form.submit()" {% if item.complete %} checked {% endif %}
+                        style="font-size: 1.375em;">
+                </form>
 
-            <div class="form-check ms-5">
-                <input class="form-check-input" type="checkbox" value="" id="checkDefault">
-                <label class="form-check-label" for="checkDefault">
-                   <h5>{{item.date.day}}日&nbsp;{{ item.task }}</h>
-                </label>
+                <div class="d-flex flex-column">
+                    <strong><s style="color: orange;">Task: {{ item.task}}</s></strong>
+
+                    <small class="text-body-secondary">
+                        <strong>
+                            Execute: {{item.add_date.year}}/{{item.add_date.month}}/{{item.add_date.day}}
+                        </strong>
+
+                        <strong class="ms-3">
+                            Done: {{item.complete_date.year}}/{{item.complete_date.month}}/{{item.complete_date.day}}
+                        </strong>
+                    </small>
+                </div>
             </div>
-            <--<h4>&emsp;&emsp;{{item.date.day}}日&nbsp;{{ item.task }}</h4> -->
-
-    <!-- {% endfor %} -->
-
-    <!-- </div> -->
 
 
+            <!-- 右側：時間 -->
+            <div class="d-flex align-items-center gap-2">
+                <a class="btn btn-success" href="{{ url_for('edit_task' ,id = item.id )}}">edit</a>
+                <a class="btn btn-danger" href="{{ url_for('delete_task',id = item.id) }}">delete</a>
+            </div>
 
-    <!-- <div class="form-check">
-        <input class="form-check-input" type="checkbox" value="" id="checkDefault">
-        <label class="form-check-label" for="checkDefault">
-            Default checkbox
         </label>
-    </div> -->
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
