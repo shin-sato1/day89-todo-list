@@ -1,12 +1,15 @@
-from flask import Flask,render_template,redirect,url_for,request
+from flask import Flask,render_template,redirect,url_for,request,flash
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager,UserMixin,login_user,current_user,logout_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import Integer, String, DateTime, ForeignKey,Boolean,func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from forms import AddTaskForm,EditTaskForm,RegisterForm
+from forms import AddTaskForm,EditTaskForm,RegisterForm,LoginForm
 from datetime import datetime,date
 import calendar
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
@@ -19,13 +22,15 @@ db = SQLAlchemy(model_class=Base)
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///todo.db"
 db.init_app(app)
 
-# class User(db.Model):
-#     id:Mapped[int] = mapped_column(Integer,primary_key=True)
-#     name: Mapped[str] = mapped_column(String,nullable=False)
-#     email: Mapped[str] = mapped_column(String,unique=True,nullable=False)
-#     password: Mapped[str] = mapped_column(String,nullable=False)
-#     #relationship
-#     tasks: Mapped[list['Task']] = relationship(back_populates='user_task')
+
+class User(db.Model,UserMixin):
+    id:Mapped[int] = mapped_column(Integer,primary_key=True)
+    name: Mapped[str] = mapped_column(String,nullable=False)
+    email: Mapped[str] = mapped_column(String,unique=True,nullable=False)
+    password: Mapped[str] = mapped_column(String,nullable=False)
+
+    #relationship
+    tasks: Mapped[list['Task']] = relationship(back_populates='user_task')
 
 class Task(db.Model):
     id:Mapped[int] = mapped_column(Integer,primary_key=True)
@@ -35,12 +40,24 @@ class Task(db.Model):
     complete_date: Mapped[datetime] = mapped_column(DateTime,nullable=True)
     
     #relationship
-    # user_task_id: Mapped[int] = mapped_column(ForeignKey(User.id))
-    # user_task: Mapped['User'] = relationship(back_populates='tasks')
+    user_task_id: Mapped[int] = mapped_column(ForeignKey(User.id))
+    user_task: Mapped['User'] = relationship(back_populates='tasks')
 
+#create table
 with app.app_context():
     db.create_all()
 
+
+#create login_manager
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User,int(user_id))
+
+
+#create datetime module for inject_date
 now = datetime.now()
 
 @app.context_processor
@@ -57,7 +74,12 @@ def inject_date():
 def home():
     tasks = []
     form = AddTaskForm()
-    task_info = db.session.execute(db.select(Task).order_by(Task.add_date.desc())).scalars().all()
+    # task_info = db.session.execute(db.select(Task).order_by(Task.add_date.desc())).scalars().all()
+    
+    if current_user.is_authenticated:
+        task_info = current_user.tasks
+    else:
+        task_info = []
 
     for item in task_info:
         tasks.append(item)
@@ -72,6 +94,7 @@ def add_task():
         new_task = Task(
             task = form.task.data,
             add_date = form.task_date.data,
+            user_task_id = current_user.id
         )
         db.session.add(new_task)
         db.session.commit()
@@ -202,8 +225,76 @@ def charts():
     return render_template('chart.html',labels=labels,data=data,chart_label=chart_label)
 
 
+@app.route('/register',methods=['POST','GET'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        email = form.email.data
+        password = form.password.data
+
+        already_user = db.session.execute(db.select(User).where(User.email == email)).scalar()
+        if already_user:
+                flash("You've already sign up with that email,log in instead","error")
+                return redirect(url_for('login'))
+        
+        hashed_password = generate_password_hash(
+            password=password,
+            method='pbkdf2:sha256',
+            salt_length=8,
+        )
+
+        new_user = User(
+            name = name,
+            email = email,
+            password = hashed_password,
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        #login for new user
+        login_user(new_user)
+        return redirect(url_for('home'))
+    return render_template('register.html',form=form)
+
+#ログインした後
+@app.route('/login',methods=['GET','POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+
+        check_login_user = db.session.execute(
+            db.select(User).where(User.email == email)
+        ).scalar()
+
+        if not check_login_user:
+            flash(message='That email does not exsit, Please try again',category='error')
+            return redirect(url_for('login'))
+
+        else:
+            check_password = check_password_hash(
+                pwhash = check_login_user.password,
+                password = password
+            )
+            if not check_password:
+                flash(message='Password incorrect, Please try again',category='error')
+                return redirect(url_for('login'))
+            
+            else:
+                login_user(check_login_user)
+                return redirect(url_for('home'))
+    return render_template('login.html',form=form)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run(host="0.0.0.0",port=5001,debug=True)
+    app.run(debug=True)
+    # app.run(host="0.0.0.0",port=5001,debug=True)
