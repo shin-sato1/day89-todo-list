@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask,render_template,redirect,url_for,request,flash
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
@@ -9,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from forms import AddTaskForm,EditTaskForm,RegisterForm,LoginForm
 from datetime import datetime,date
 import calendar
+
+load_dotenv()
 
 
 app = Flask(__name__)
@@ -91,6 +95,10 @@ def home():
 def add_task():
     form = AddTaskForm()
     if form.validate_on_submit():
+        if not current_user.is_authenticated:
+            flash("Please sign up to create todo list","error")
+            return redirect(url_for('register'))
+        
         new_task = Task(
             task = form.task.data,
             add_date = form.task_date.data,
@@ -203,6 +211,7 @@ def charts():
                 func.date(Task.complete_date),
                 func.count(Task.id)
             )
+            .where(Task.user_task_id == current_user.id)
             .where(func.strftime("%Y",Task.complete_date) == str(year))
             .where(func.strftime("%m",Task.complete_date) == f"{month:02d}")
             .group_by(func.date(Task.complete_date))
