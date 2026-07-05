@@ -1,8 +1,9 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask,render_template,redirect,url_for,request,flash
+from flask import Flask,render_template,redirect,url_for,request,flash,abort
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
+from functools import wraps
 from flask_login import LoginManager,UserMixin,login_user,current_user,logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import DeclarativeBase
@@ -60,6 +61,16 @@ login_manager.init_app(app)
 def load_user(user_id):
     return db.session.get(User,int(user_id))
 
+#only login user decolater
+def login_memeber_only(f):
+    @wraps(f)
+    def decorated_function(*args,**kwargs):
+        if not current_user.is_authenticated:
+            abort(401)
+        else:
+            return f(*args,**kwargs)
+    return decorated_function
+
 
 #create datetime module for inject_date
 now = datetime.now()
@@ -73,8 +84,13 @@ def inject_date():
         'current_time': now.second,
     }
 
-
 @app.route('/')
+def title():
+    return render_template('title.html')
+
+
+@app.route('/todo')
+@login_memeber_only
 def home():
     tasks = []
     form = AddTaskForm()
@@ -90,8 +106,8 @@ def home():
     return render_template('index.html',form=form,task_info_forms=tasks)
 
 
-
 @app.route('/add',methods=['POST','GET'])
+@login_memeber_only
 def add_task():
     form = AddTaskForm()
     if form.validate_on_submit():
@@ -112,6 +128,7 @@ def add_task():
 
 
 @app.route('/complete/<int:id>',methods=['POST','GET'])
+@login_memeber_only
 def complete_task(id):
     task = db.get_or_404(Task,id)
     #最初にFalseをデフォルトにつけているので not Falseで Trueにしている。
@@ -130,6 +147,7 @@ def complete_task(id):
 
 
 @app.route('/delete/<int:id>',methods=['POST','GET'])
+@login_memeber_only
 def delete_task(id):
     todo_info = db.get_or_404(Task,id)
 
@@ -150,6 +168,7 @@ def delete_task(id):
 
 
 @app.route('/edit/<int:id>',methods=['POST','GET'])
+@login_memeber_only
 def edit_task(id):
     todo_info = db.get_or_404(Task,id)
 
@@ -179,6 +198,7 @@ def edit_task(id):
 
 
 @app.route('/chart',methods=['POST','GET'])
+@login_memeber_only
 def charts():
     #やること
     #同じ日付を確認する。何個あるか確認する
@@ -301,7 +321,7 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('home'))
+    return redirect(url_for('title'))
 
 
 if __name__ == '__main__':
