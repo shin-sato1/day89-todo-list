@@ -206,6 +206,8 @@ def charts():
     year = request.args.get('year')
     month = request.args.get('month')
 
+    #chart.htmlからyear monthは来ている。最初ページを見たときは値が入っていないのでエラーにならないようにnow.year now.monthを入れる
+    #year monthは後から見たい年・月を変更できるようにchart.htmlでしている
     if year is None or month is None:
         year = now.year
         month = now.month
