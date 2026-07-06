@@ -72,11 +72,11 @@ def login_memeber_only(f):
     return decorated_function
 
 
-#create datetime module for inject_date
-now = datetime.now()
 
 @app.context_processor
 def inject_date():
+    #create datetime module for inject_date
+    now = datetime.now()
     return {
         'current_year': now.year,
         'current_month': now.month,
@@ -130,7 +130,17 @@ def add_task():
 @app.route('/complete/<int:id>',methods=['POST','GET'])
 @login_memeber_only
 def complete_task(id):
-    task = db.get_or_404(Task,id)
+    # task = db.get_or_404(Task,id)
+    task = db.session.execute(
+        db.select(Task).where(
+            Task.id == id,
+            Task.user_task_id == current_user.id,
+        )
+    ).scalar()
+
+    if task is None:
+        abort(404)
+
     #最初にFalseをデフォルトにつけているので not Falseで Trueにしている。
     task.complete = not task.complete
 
@@ -149,7 +159,16 @@ def complete_task(id):
 @app.route('/delete/<int:id>',methods=['POST','GET'])
 @login_memeber_only
 def delete_task(id):
-    todo_info = db.get_or_404(Task,id)
+    # todo_info = db.get_or_404(Task,id)
+    todo_info = db.session.execute(
+        db.select(Task).where(
+            Task.id == id,
+            Task.user_task_id == current_user.id,
+        )
+    ).scalar()
+
+    if todo_info is None:
+        abort(404)
 
     delete_form = EditTaskForm(
         task = todo_info.task,
@@ -170,7 +189,16 @@ def delete_task(id):
 @app.route('/edit/<int:id>',methods=['POST','GET'])
 @login_memeber_only
 def edit_task(id):
-    todo_info = db.get_or_404(Task,id)
+    # todo_info = db.get_or_404(Task,id)
+    todo_info = db.session.execute(
+        db.select(Task).where(
+            Task.id == id,
+            Task.user_task_id == current_user.id,
+        )
+    ).scalar()
+
+    if todo_info is None:
+        abort(404)
 
     #edit画面に現在の値、文字を表示させている
     edit_form = EditTaskForm(
